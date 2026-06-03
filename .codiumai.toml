@@ -1,0 +1,31 @@
+[tests]
+# 1. THE STACK
+# Unified Path: We enforce Vitest for the entire monorepo
+framework = "vitest"
+
+# 2. BEHAVIORAL RULES
+# This injects our "Zero Regression" & "Edge Case" philosophy into every generation
+plan_instructions = """
+1. PRIMARY DIRECTIVE: Focus on Behavior and Edge Cases. Do not just test the happy path.
+2. STACK: TypeScript, Piece Framework, Vitest.
+3. MOCKING RULES:
+   - Use 'vi.mock' for external network calls and store interactions. DO NOT use 'jest'.
+   - Do NOT fetch real URLs unless it is explicitly an '.e2e.spec.ts' file.
+4. TYPE SAFETY & QUALITY (STRICT):
+   - STRICTLY NO 'any' type casting. Use specific interfaces or 'unknown' with narrowing.
+   - Write fully typed test cases. Define interfaces for your mock data factories.
+   - NO LINT ERRORS: Ensure the generated code is clean, has no unused variables, and follows standard ESLint rules.
+5. ASSERTIONS:
+   - Use 'expect' from 'vitest'.
+6. COVERAGE REQUIREMENT:
+   - Aim for >90% code coverage.
+   - Ensure all branches, error states, and edge cases (null/undefined inputs) are explicitly tested.
+"""
+
+# 3. CONTEXT AWARENESS
+reference_code_len = 2000
+use_related_files = true
+
+[analysis]
+# Focus analysis on security and logic gaps
+dependency_analysis = true

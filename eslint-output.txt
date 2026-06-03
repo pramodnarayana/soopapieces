@@ -1,0 +1,189 @@
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/domain/tms/src/tms-normalized-writer.ts
+  42:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:62  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/domain/tms/src/tms-target-builder.spec.ts
+  11:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/domain/tms/src/tms-target-builder.ts
+  67:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  74:82  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/dist/src/lib/types.d.ts
+   84:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  219:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  244:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/dist/src/triggers/universal-trigger.d.ts
+  1:91  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1:96  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/src/index.spec.ts
+  9:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/src/lib/types.ts
+   93:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:51  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  229:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  256:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/src/triggers/quickbooks-polling.helper.spec.ts
+  18:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/src/triggers/quickbooks-polling.helper.ts
+  53:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/core/src/triggers/quickbooks-query.adapter.spec.ts
+  73:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/online-shard/normalise.ts
+  9:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/online-shard/prepare-update.ts
+  15:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  17:32  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  22:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/quickbooks/online-shard/replicate.ts
+  13:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/dist/lib/common/index.d.ts
+  35:82   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:83   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:43   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:84   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:101  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:80   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:86   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:100  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:79   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/dist/lib/trigger/universal-trigger.d.ts
+  1:91  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1:96  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/index.spec.ts
+  9:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/index.ts
+  277:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  279:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/common/index.spec.ts
+  38:40  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/common/index.ts
+   69:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:68  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  215:49  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  369:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  382:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  555:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  668:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  679:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  699:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  716:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  732:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  734:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  735:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  750:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  760:27  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  770:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  771:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  787:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  802:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  803:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  804:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  817:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  819:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  820:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/discovery/salesforce-bulk.adapter.spec.ts
+    8:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   63:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/discovery/salesforce-bulk.adapter.ts
+   78:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  262:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/discovery/salesforce-discovery.adapter.spec.ts
+    9:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   67:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  152:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/discovery/salesforce-discovery.adapter.ts
+   59:70  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:92  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/sf-fetch.spec.ts
+  10:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/sf-fetch.ts
+   45:17  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   65:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/trigger/salesforce-polling.helper.spec.ts
+   53:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   79:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:66  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/trigger/universal-trigger.spec.ts
+  25:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:77  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:69  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:68  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/salesforce/core/src/lib/trigger/universal-trigger.ts
+   32:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   89:24  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:45  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:33  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  188:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:86  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/pramodnarayana/Engineering/apps/soopapieces/packages/shared/mapping/src/mapping-engine.spec.ts
+  309:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  310:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  311:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  312:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  314:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  324:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  325:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  330:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  331:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  332:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 128 problems (0 errors, 128 warnings)
+
