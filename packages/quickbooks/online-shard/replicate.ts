@@ -17,7 +17,7 @@ export async function ReplicateQBObject(payload: unknown): Promise<ReplicaEntity
     const entityType = p.name || p.type;
     const entityId = p.id;
 
-    if (!entityType || !entityId) {
+    if (typeof entityType !== 'string' || typeof entityId !== 'string') {
         return null;
     }
 

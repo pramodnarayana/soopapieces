@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@soopa/domain-tms": "workspace:*",
-    "@soopa/piece-framework": "latest",
+    "@soopa/piece-framework": "^1.0.1-dev.0",
     "jsonata": "^2.2.1"
   },
   "devDependencies": {

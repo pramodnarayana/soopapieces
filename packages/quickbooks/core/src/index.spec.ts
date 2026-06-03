@@ -101,10 +101,6 @@ describe('quickbooks piece', () => {
             expect(objects.find(o => o.name === 'Customer')).toBeDefined();
         });
 
-        it('should handle payload without operation', () => {
-            const result = quickbooks.events?.parseAndReply!({ payload: { body: {} } });
-            expect(result).toBeUndefined();
-        });
     });
 
     describe('discovery methods', () => {

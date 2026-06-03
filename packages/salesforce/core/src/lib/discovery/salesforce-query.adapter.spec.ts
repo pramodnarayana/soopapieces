@@ -96,7 +96,7 @@ describe('SalesforceQueryAdapter', () => {
             expect(result).toBe("SELECT COUNT() FROM Contact WHERE SystemModstamp > 2026-03-01T00:00:00.000Z");
         });
 
-        it('should default to COUNT() if Id field is missing from schema', () => {
+        it('should always generate COUNT() for any schema', () => {
             const noIdSchema: ObjectSchema = {
                 objectName: 'CustomObj__c',
                 fields: [

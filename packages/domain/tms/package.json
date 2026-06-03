@@ -19,7 +19,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@soopa/piece-framework": "latest",
+    "@soopa/piece-framework": "^1.0.1-dev.0",
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {

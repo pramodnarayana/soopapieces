@@ -1,7 +1,7 @@
 {
   "name": "pieces-salesforce",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/pieces/community/salesforce/src",
+  "sourceRoot": "packages/salesforce/core/src",
   "projectType": "library",
   "targets": {
     "build": {
@@ -10,14 +10,14 @@
         "{options.outputPath}"
       ],
       "options": {
-        "outputPath": "dist/packages/pieces/community/salesforce",
-        "tsConfig": "packages/pieces/community/salesforce/tsconfig.lib.json",
-        "packageJson": "packages/pieces/community/salesforce/package.json",
-        "main": "packages/pieces/community/salesforce/src/index.ts",
+        "outputPath": "dist/packages/salesforce/core",
+        "tsConfig": "packages/salesforce/core/tsconfig.lib.json",
+        "packageJson": "packages/salesforce/core/package.json",
+        "main": "packages/salesforce/core/src/index.ts",
         "assets": [
-          "packages/pieces/community/salesforce/*.md",
+          "packages/salesforce/core/*.md",
           {
-            "input": "packages/pieces/community/salesforce/src/i18n",
+            "input": "packages/salesforce/core/src/i18n",
             "output": "./src/i18n",
             "glob": "**/!(i18n.json)"
           }
@@ -40,8 +40,8 @@
     "prebuild": {
       "executor": "nx:run-commands",
       "options": {
-        "cwd": "packages/pieces/community/salesforce",
-        "command": "bun install --no-save --silent"
+        "cwd": "packages/salesforce/core",
+        "command": "pnpm install --silent"
       },
       "dependsOn": [
         "^build"

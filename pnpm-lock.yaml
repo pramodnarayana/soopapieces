@@ -48,7 +48,7 @@ importers:
   packages/domain/tms:
     dependencies:
       '@soopa/piece-framework':
-        specifier: latest
+        specifier: ^1.0.1-dev.0
         version: 1.0.1-dev.0
       drizzle-orm:
         specifier: ^0.45.1
@@ -64,7 +64,7 @@ importers:
   packages/quickbooks/core:
     dependencies:
       '@soopa/piece-framework':
-        specifier: latest
+        specifier: ^1.0.1-dev.0
         version: 1.0.1-dev.0
       dayjs:
         specifier: ^1.11.19
@@ -80,7 +80,7 @@ importers:
   packages/salesforce/core:
     dependencies:
       '@soopa/piece-framework':
-        specifier: latest
+        specifier: ^1.0.1-dev.0
         version: 1.0.1-dev.0
       dayjs:
         specifier: ^1.11.19
@@ -99,7 +99,7 @@ importers:
         specifier: workspace:*
         version: link:../../domain/tms
       '@soopa/piece-framework':
-        specifier: latest
+        specifier: ^1.0.1-dev.0
         version: 1.0.1-dev.0
       jsonata:
         specifier: ^2.2.1
@@ -118,7 +118,7 @@ importers:
         specifier: workspace:*
         version: link:../../domain/tms
       '@soopa/piece-framework':
-        specifier: latest
+        specifier: ^1.0.1-dev.0
         version: 1.0.1-dev.0
     devDependencies:
       typescript:

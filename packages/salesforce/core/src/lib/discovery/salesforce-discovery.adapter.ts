@@ -1,4 +1,3 @@
-/* v8 ignore start */
 import type { TriggerStore } from '@soopa/piece-framework';
 import {
     type IDiscoveryAdapter,
@@ -159,4 +158,3 @@ export class SalesforceDiscoveryAdapter implements IDiscoveryAdapter<SalesforceA
     }
     /* v8 ignore stop */
 }
-/* v8 ignore stop */

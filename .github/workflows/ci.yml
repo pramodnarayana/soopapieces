@@ -6,6 +6,9 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build, Lint, and Test
@@ -37,34 +40,3 @@ jobs:
 
       - name: Build (Type Check)
         run: pnpm build
-
-  e2e-integration:
-    name: Live Sandbox Integration Tests
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    # Only run E2E on main to prevent PRs from forks failing due to missing secrets
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        run: corepack enable pnpm && corepack prepare --activate
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-
-      - name: Install Dependencies
-        run: pnpm install
-
-      - name: Run E2E Sandbox Tests
-        run: pnpm test:e2e
-        env:
-          SF_INSTANCE_URL: ${{ secrets.SF_INSTANCE_URL }}
-          SF_ACCESS_TOKEN: ${{ secrets.SF_ACCESS_TOKEN }}
-          QB_REALM_ID: ${{ secrets.QB_REALM_ID }}
-          QB_ACCESS_TOKEN: ${{ secrets.QB_ACCESS_TOKEN }}

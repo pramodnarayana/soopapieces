@@ -95,6 +95,14 @@ export const salesforcesCommon = {
 				};
 			}
 
+			if (!/^[A-Za-z0-9_]+$/.test(object as string)) {
+				return {
+					disabled: true,
+					placeholder: 'Invalid object name',
+					options: [],
+				};
+			}
+
 			try {
 				const describeResponse = await getSalesforceFields(
 					auth,
@@ -474,7 +482,12 @@ export const salesforcesCommon = {
 			let query = 'SELECT Id, Name FROM Report';
 
 			if (searchValue) {
-				const sanitizedSearch = searchValue.replaceAll('\'', String.raw`\'`);
+				// Escape backslashes, single quotes, and LIKE wildcards
+				const sanitizedSearch = searchValue
+					.replaceAll('\\', '\\\\')
+					.replaceAll('\'', '\\\'')
+					.replaceAll('%', '\\%')
+					.replaceAll('_', '\\_');
 				query += ` WHERE Name LIKE '${sanitizedSearch}%'`;
 			}
 
@@ -504,6 +517,13 @@ export const salesforcesCommon = {
 				return {
 					disabled: true,
 					placeholder: 'Select a parent object first',
+					options: [],
+				};
+			}
+			if (!/^[A-Za-z0-9_]+$/.test(parent_object as string)) {
+				return {
+					disabled: true,
+					placeholder: 'Invalid parent object name',
 					options: [],
 				};
 			}

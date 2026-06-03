@@ -26,18 +26,18 @@ import { sql } from 'drizzle-orm';
  *   tms_address   — Shipper/Consignee Accounts (origin/destination)
  *   tms_tp        — Transportation Profile (linked to Carrier/Vendor)
  *
- * Natural key on all tables: sf_id — idempotent upsert target.
+ * Natural key on all tables: source_id — idempotent upsert target.
  *
  * JOIN chain for QB Vendor payload:
- *   tms_carrier.tp_sf_id → tms_tp.sf_id
- *   tms_tp.remit_to_sf_id → tms_carrier.sf_id | tms_factoring.sf_id
+ *   tms_carrier.tp_source_id → tms_tp.source_id
+ *   tms_tp.carrier_remit_to → tms_carrier.source_id | tms_factoring.source_id
  *
- * ⚠️ SYNC WARNING: This schema MUST stay in sync with the DDL in tms-provisioner.ts.
+ * ⚠️ SYNC WARNING: This schema MUST stay in sync with the DDL in provisionTmsTables (tms-provisioner.ts).
  * When updating this builder, also update the corresponding DDL in provisionTmsTables:
- *   - Unique index name pattern: uq_tms_*_sf_id
- *   - Partial index predicates on tp_sf_id / remit_to_sf_id (WHERE ... IS NOT NULL)
+ *   - Unique index name pattern: uq_tms_*_source_id
+ *   - Partial index predicates on tp_source_id / carrier_remit_to (WHERE ... IS NOT NULL)
  *   - Boolean-like text columns: is_carrier, is_broker, is_vendor, is_pickup, is_delivery
- * buildTmsSchema is the authoritative builder — check it when updating tms-provisioner.ts.
+ * provisionTmsTables and buildTmsSchema are authoritative sources — keep them aligned.
  */
 /* v8 ignore start */
 export function buildTmsSchema(schemaName: string) {

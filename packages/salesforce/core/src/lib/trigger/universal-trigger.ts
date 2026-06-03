@@ -63,7 +63,7 @@ export const salesforceUniversalTrigger = createTrigger({
         try {
             return await runUniversalTrigger(context, objectName, store, log);
         } catch (e) {
-            if (e instanceof SalesforceAuthError) {
+            if (e instanceof SalesforceAuthError && e.code !== 'MISSING_CREDENTIALS') {
                 throw new Error(
                     `Your Salesforce connection has expired or been revoked. ` +
                     `Please reconnect your account in the connection settings. ` +
@@ -118,7 +118,7 @@ async function runUniversalTrigger(
     const instance_url = authData.instance_url ?? context.auth?.instance_url;
 
     if (!access_token || !instance_url) {
-        throw new SalesforceAuthError('Missing access_token or instance_url in authentication data');
+        throw new SalesforceAuthError('Missing access_token or instance_url in authentication data', 'MISSING_CREDENTIALS');
     }
 
     const flatAuth = {

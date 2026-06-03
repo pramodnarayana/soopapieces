@@ -28,7 +28,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@soopa/piece-framework": "latest",
+    "@soopa/piece-framework": "^1.0.1-dev.0",
     "dayjs": "^1.11.19"
   }
 }

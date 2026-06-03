@@ -46,7 +46,7 @@ async function upsert(
     extras: Record<string, unknown>
 ) {
     const values: Record<string, unknown> = { ...base, ...extras };
-    const columns = Object.keys(values).filter(k => values[k] !== undefined);
+    const columns = Object.keys(values).filter(k => values[k] !== undefined && values[k] !== null);
     
     // Convert camelCase to snake_case for DB columns
     const snakeCols = columns.map(c => c.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`));
@@ -54,7 +54,7 @@ async function upsert(
     const placeholders = sql.join(columns.map(c => sql`${values[c]}`), sql`, `);
     
     // ON CONFLICT (source_id) DO UPDATE SET ...
-    const updates = snakeCols.map(c => `"${c}" = EXCLUDED."${c}"`).join(', ');
+    const updates = snakeCols.map(c => `"${c}" = COALESCE(EXCLUDED."${c}", "${tableName}"."${c}")`).join(', ');
     
     const query = sql`
         INSERT INTO ${sql.identifier(schemaName)}.${sql.identifier(tableName)} (${colNames})
@@ -131,14 +131,15 @@ export const tmsNormalizedWriter: AppNormalizedWriterFn = async (
     if (normalizedEntityType === 'TMS_TP') {
         await upsert(txTyped, schemaName, 'tms_tp', base, {
             mcNumber: str(data['mcNumber']),
-            scac: str(data['scac']),
-            federalTaxId: str(data['federalTaxId']),
-            usdot: str(data['usdot']),
-            remitToSourceId: str(data['remitToSourceId']),
+            usDotNumber: str(data['usdot']),
             remitToOption: str(data['remitToOption']),
-            carrierOperation: str(data['carrierOperation']),
-            agreementStatus: str(data['agreementStatus']),
-            carrierReviewStatus: str(data['carrierReviewStatus']),
+            invoiceTerms: str(data['invoiceTerms']),
+            paymentTerms: str(data['paymentTerms']),
+            carrierPaymentTerms: str(data['carrierPaymentTerms']),
+            carrierRemitTo: str(data['carrierRemitTo']),
+            companyType: str(data['companyType']),
+            creditLimit: str(data['creditLimit']),
+            stateDotNumber: str(data['stateDotNumber']),
         });
         return;
     }

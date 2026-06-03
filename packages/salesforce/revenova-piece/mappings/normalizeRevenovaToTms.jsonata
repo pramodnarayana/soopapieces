@@ -18,7 +18,7 @@
         $resolution := $resolveAccountCanonicalType(data.rtms__tms_type__c);
         $resolution.canonicalType = null ? null : (
             /* Warning logging not directly supported in standard JSONata, skipped */
-            $resolution.canonicalType != 'TMS_ADDRESS' and (data.name = null or data.name = "") ? null : {
+            $resolution.canonicalType != 'TMS_ADDRESS' and ($not($exists(data.name)) or data.name = null or $trim(data.name) = "") ? null : {
                 "canonicalType": $resolution.canonicalType,
                 "data": {
                     "displayName":       data.name,

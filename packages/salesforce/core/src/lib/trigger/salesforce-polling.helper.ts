@@ -36,16 +36,18 @@ export function assertSafeSalesforceField(fieldName: string): void {
 
 /** Parses a compound or legacy cursor string into { sinceDate, sinceId }. */
 function parseCursor(raw: string, fallbackDate: string): { sinceDate: string; sinceId: string } {
+    const isIsoDate = (d: string) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(d);
+    const validDate = (d: string) => isIsoDate(d) ? d : fallbackDate;
+    const sanitizeId = (id: string) => /^[A-Za-z0-9]+$/.test(id) ? id : '';
+
     try {
         const parsed = JSON.parse(raw) as Record<string, unknown>;
         if (typeof parsed.sinceDate === 'string' && typeof parsed.sinceId === 'string') {
-            return { sinceDate: parsed.sinceDate, sinceId: parsed.sinceId };
+            return { sinceDate: validDate(parsed.sinceDate), sinceId: sanitizeId(parsed.sinceId) };
         }
-        // JSON parsed successfully but is missing required keys — reset to fallback
-        // rather than reusing the raw string, which could inject untrusted JSON into SOQL.
         return { sinceDate: fallbackDate, sinceId: '' };
     } catch { /* not JSON — treat as plain ISO date string */ }
-    return { sinceDate: raw || fallbackDate, sinceId: '' };
+    return { sinceDate: validDate(raw || fallbackDate), sinceId: '' };
 }
 
 /** Builds the SOQL WHERE clause, adding a tie-breaker when a sinceId is available. */

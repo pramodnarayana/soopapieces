@@ -124,6 +124,31 @@ describe('SalesforceDiscoveryAdapter', () => {
             await expect(adapter.describe(mockAuth, 'InvalidObject', mockStore))
                 .rejects.toThrow('[FieldNotFoundError] Salesforce describe failed for InvalidObject: Salesforce API error (404): [{"errorCode":"NOT_FOUND","message":"Not Found"}]');
         });
+
+        it('should throw an error if object name is invalid', async () => {
+            await expect(adapter.describe(mockAuth, 'Invalid Object!', mockStore))
+                .rejects.toThrow('Invalid Salesforce object name: Invalid Object!');
+        });
+
+        it('should evict the oldest cache entry when exceeding MAX_CACHE_SIZE', async () => {
+            (mockStore.get as any).mockResolvedValue(null);
+            vi.mocked(sfFetch).mockResolvedValue({
+                ok: true,
+                json: async () => mockSchemaResponse
+            } as unknown as Response);
+
+            // MAX_CACHE_SIZE is 100, we need to exceed it
+            for (let i = 0; i < 101; i++) {
+                await adapter.describe(mockAuth, `Object${i}`, mockStore);
+            }
+            
+            // Check that the first entry (Object0) is evicted
+            // We can infer this by calling it again and seeing sfFetch is called
+            vi.mocked(sfFetch).mockClear();
+            (mockStore.get as any).mockResolvedValue(null);
+            await adapter.describe(mockAuth, `Object0`, mockStore);
+            expect(sfFetch).toHaveBeenCalled();
+        });
     });
 
     describe('fieldExists', () => {
@@ -142,6 +167,24 @@ describe('SalesforceDiscoveryAdapter', () => {
             const exists = await adapter.fieldExists(mockAuth, 'Contact', 'MissingField', mockStore);
 
             expect(exists).toBe(false);
+        });
+
+        it('should return false when a FieldNotFoundError is thrown', async () => {
+            (mockStore.get as any).mockResolvedValue(null);
+            vi.mocked(sfFetch).mockRejectedValueOnce(
+                new Error('Salesforce API error (404): [{"errorCode":"NOT_FOUND","message":"Not Found"}]')
+            );
+            const exists = await adapter.fieldExists(mockAuth, 'InvalidObject', 'MissingField', mockStore);
+            expect(exists).toBe(false);
+        });
+
+        it('should throw when a normal error is thrown', async () => {
+            (mockStore.get as any).mockResolvedValue(null);
+            vi.mocked(sfFetch).mockRejectedValueOnce(
+                new Error('Network error')
+            );
+            await expect(adapter.fieldExists(mockAuth, 'Contact', 'MissingField', mockStore))
+                .rejects.toThrow('Network error');
         });
     });
 
