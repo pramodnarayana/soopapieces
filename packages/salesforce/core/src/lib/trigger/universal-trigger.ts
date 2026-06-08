@@ -64,7 +64,7 @@ export const salesforceUniversalTrigger = createTrigger({
         try {
             return await runUniversalTrigger(context, objectName, store, log);
         } catch (e: unknown) {
-            if (e instanceof SalesforceFetchError && e.message !== 'MISSING_CREDENTIALS') {
+            if (e instanceof SalesforceFetchError && (e.status === 401 || e.status === 403)) {
                 throw new Error(
                     `Your Salesforce connection has expired or been revoked. ` +
                     `Please reconnect your account in the connection settings. ` +

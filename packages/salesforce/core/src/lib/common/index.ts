@@ -71,23 +71,37 @@ export const salesforcesCommon = {
 					options: [],
 				};
 			}
-			const options = await getSalesforceObjects(auth);
-			const optionsBody = options.body as Record<string, unknown>;
-			const optionsArray = optionsBody['sobjects'] as Record<string, unknown>[];
-			return {
-				disabled: false,
-				options: optionsArray
-					.map((object) => {
-						return {
-							label: String(object['label']),
-							value: String(object['name']),
-						};
-					})
-					.sort((a: { label: string }, b: { label: string }) =>
-						a.label.localeCompare(b.label)
-					)
-					.filter((object: { label: string }) => !object.label.startsWith('_')),
-			};
+			try {
+				const options = await getSalesforceObjects(auth);
+				const optionsBody = options.body as Record<string, unknown>;
+				if (!optionsBody || typeof optionsBody !== 'object') {
+					throw new Error('Invalid response body');
+				}
+				const optionsArray = optionsBody['sobjects'] as Record<string, unknown>[];
+				if (!Array.isArray(optionsArray)) {
+					throw new Error('sobjects is not an array');
+				}
+				return {
+					disabled: false,
+					options: optionsArray
+						.map((object) => {
+							return {
+								label: String(object['label']),
+								value: String(object['name']),
+							};
+						})
+						.sort((a: { label: string }, b: { label: string }) =>
+							a.label.localeCompare(b.label)
+						)
+						.filter((object: { label: string }) => !object.label.startsWith('_')),
+				};
+			} catch {
+				return {
+					disabled: true,
+					placeholder: 'unable to load objects',
+					options: [],
+				};
+			}
 		},
 	}),
 	record: Property.Dropdown<string, true, typeof salesforceAuth>({
@@ -227,21 +241,35 @@ export const salesforcesCommon = {
 					options: [],
 				};
 			}
-			const options = await getSalesforceFields(
-				auth,
-				object as string
-			);
-			const optionsBody = options.body as Record<string, unknown>;
-			const fieldsArray = optionsBody['fields'] as Record<string, unknown>[];
-			return {
-				disabled: false,
-				options: fieldsArray.map((field) => {
-					return {
-						label: String(field['label']),
-						value: String(field['name']),
-					};
-				}),
-			};
+			try {
+				const options = await getSalesforceFields(
+					auth,
+					object as string
+				);
+				const optionsBody = options.body as Record<string, unknown>;
+				if (!optionsBody || typeof optionsBody !== 'object') {
+					throw new Error('Invalid response body');
+				}
+				const fieldsArray = optionsBody['fields'] as Record<string, unknown>[];
+				if (!Array.isArray(fieldsArray)) {
+					throw new Error('fields is not an array');
+				}
+				return {
+					disabled: false,
+					options: fieldsArray.map((field) => {
+						return {
+							label: String(field['label']),
+							value: String(field['name']),
+						};
+					}),
+				};
+			} catch {
+				return {
+					disabled: true,
+					placeholder: 'could not load fields',
+					options: [],
+				};
+			}
 		},
 	}),
 	campaign: Property.Dropdown<string, true, typeof salesforceAuth>({
@@ -801,7 +829,7 @@ export async function uploadToBulkJob<T>(
 		headers: {
 			'Content-Type': 'text/csv',
 		},
-		body: csv as unknown as Record<string, unknown>,
+		body: csv as unknown,
 		authentication: {
 			type: AuthenticationType.BEARER_TOKEN,
 			token: authentication['access_token'],

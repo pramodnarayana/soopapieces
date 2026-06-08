@@ -7,7 +7,7 @@ export default defineConfig({
     projects: [
       {
         test: {
-          include: ['**/*.test.ts', '**/*.spec.ts'],
+          include: ['packages/**/*.test.ts', 'packages/**/*.spec.ts'],
           environment: 'node'
         }
       }

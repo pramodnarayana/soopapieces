@@ -159,9 +159,9 @@ export class SalesforceUseCases {
     });
 
     // Honor Salesforce's done flag and also check record count
-    const done = Boolean(data.done) || data.records.length < 200;
+    const _done = Boolean(data.done) || data.records.length < 200;
     let nextCursor: Record<string, unknown> | undefined;
-    if (!done && data.records.length > 0) {
+    if (!_done && data.records.length > 0) {
       const lastRecord = data.records[data.records.length - 1];
       nextCursor = { lastId: lastRecord['Id'] };
     }
