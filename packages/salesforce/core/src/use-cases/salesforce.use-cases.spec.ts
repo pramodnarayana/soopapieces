@@ -220,5 +220,29 @@ describe('SalesforceUseCases', () => {
 
       expect(result.nextPageCursor).toEqual({ lastId: 'id_199' });
     });
+
+    it('handles full-page terminal case', async () => {
+      fakeHttp.getStub = (url) => {
+        if (url.includes('/query')) {
+          return {
+            status: 200,
+            headers: {},
+            data: {
+              records: Array.from({ length: 200 }).map((_, i) => ({ Id: `id_${i}` })),
+              done: true
+            }
+          };
+        }
+        throw new Error('Unexpected URL');
+      };
+
+      const result = await useCases.poll(creds, 'Account', {
+        from: '2023-01-01T00:00:00.000Z',
+        to: '2023-01-02T00:00:00.000Z'
+      });
+
+      expect(result.records).toHaveLength(200);
+      expect(result.nextPageCursor).toBeUndefined();
+    });
   });
 });

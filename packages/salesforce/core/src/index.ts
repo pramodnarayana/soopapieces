@@ -186,7 +186,11 @@ export const salesforce = createPiece({
             if (err instanceof SalesforceFetchError) {
                 let parsedBody: unknown = {};
                 try {
-                    parsedBody = JSON.parse(err.message.split(': ')[1] || '{}');
+                    // Try to find JSON payload in the error message
+                    const braceIndex = err.message.search(/[{\[]/);
+                    if (braceIndex !== -1) {
+                        parsedBody = JSON.parse(err.message.substring(braceIndex));
+                    }
                 } catch {
                     // Ignore
                 }

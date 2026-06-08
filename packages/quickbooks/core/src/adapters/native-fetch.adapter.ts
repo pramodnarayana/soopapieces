@@ -54,7 +54,7 @@ export class NativeFetchAdapter implements VendorHttpPort {
     
     const contentType = res.headers.get('content-type') || '';
     const isJson = contentType.includes('application/json');
-    const data = (isJson ? await res.json().catch(() => ({})) : await res.text()) as T;
+    const data = (isJson ? await res.json() : await res.text()) as T;
 
     const responseHeaders: Record<string, string> = {};
     res.headers.forEach((value, key) => {

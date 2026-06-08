@@ -591,10 +591,12 @@ export const salesforcesCommon = {
 				}
 				return {
 					disabled: false,
-					options: relationships.map((rel) => ({
-						label: `${rel['relationshipName']} (${rel['childSObject']})`,
-						value: String(rel['relationshipName']),
-					})),
+					options: relationships
+						.filter((rel) => rel['relationshipName'] && String(rel['relationshipName']).trim() !== '')
+						.map((rel) => ({
+							label: `${rel['relationshipName']} (${rel['childSObject']})`,
+							value: String(rel['relationshipName']),
+						})),
 				};
 			} catch (e) {
 				console.error(e);

@@ -125,10 +125,22 @@ export class SalesforceUseCases {
   }
 
   async poll(credentials: SalesforceCredentials, streamName: string, _window: PollWindow, nextPageCursor?: Record<string, unknown>): Promise<PollPage> {
+    // Validate streamName to prevent SOQL injection
+    if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(streamName)) {
+      throw new Error(`Invalid Salesforce object name: ${streamName}`);
+    }
+
     let soql = `SELECT FIELDS(ALL) FROM ${streamName}`;
-    
+
     if (nextPageCursor && typeof nextPageCursor['lastId'] === 'string') {
-      soql += ` WHERE Id > '${nextPageCursor['lastId']}' ORDER BY Id ASC LIMIT 200`;
+      const lastId = nextPageCursor['lastId'];
+      // Validate Salesforce ID format (15 or 18 alphanumeric characters)
+      if (!/^[a-zA-Z0-9]{15}$|^[a-zA-Z0-9]{18}$/.test(lastId)) {
+        throw new Error(`Invalid Salesforce ID format: ${lastId}`);
+      }
+      // Escape any special characters to prevent injection
+      const sanitizedId = lastId.replace(/['"\n\r\\]/g, '');
+      soql += ` WHERE Id > '${sanitizedId}' ORDER BY Id ASC LIMIT 200`;
     } else {
       soql += ` ORDER BY Id ASC LIMIT 200`;
     }
@@ -146,9 +158,10 @@ export class SalesforceUseCases {
       Accept: 'application/json',
     });
 
-    const done = data.records.length < 200;
+    // Honor Salesforce's done flag and also check record count
+    const done = Boolean(data.done) || data.records.length < 200;
     let nextCursor: Record<string, unknown> | undefined;
-    if (!done && data.records.length > 0) {
+    if (!data.done && data.records.length > 0) {
       const lastRecord = data.records[data.records.length - 1];
       nextCursor = { lastId: lastRecord['Id'] };
     }

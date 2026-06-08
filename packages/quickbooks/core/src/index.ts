@@ -417,7 +417,13 @@ export const quickbooks = createPiece({
         if (err instanceof QuickBooksFetchError) {
           status = err.status;
           try {
-            resData = JSON.parse(err.message.split(': ')[1] || '{}');
+            // Try to find JSON payload in the error message
+            const braceIndex = err.message.indexOf('{');
+            if (braceIndex !== -1) {
+              resData = JSON.parse(err.message.substring(braceIndex));
+            } else {
+              resData = {};
+            }
           } catch {
             resData = {};
           }

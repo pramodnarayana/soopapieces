@@ -44,9 +44,16 @@ describe('salesforce piece', () => {
 
         it('should handle SalesforceFetchError with invalid json', async () => {
             postSpy.mockRejectedValueOnce(new SalesforceFetchError(`Error: Invalid JSON`, 400));
-            
+
             const result = await salesforce.executeAction!('Account', {}, credentials);
             expect(result).toEqual({ statusCode: 400, body: {} });
+        });
+
+        it('should handle adapter-shaped Salesforce error payload', async () => {
+            postSpy.mockRejectedValueOnce(new SalesforceFetchError('Error: [{"message":"Some msg","errorCode":"INVALID_FIELD"}]', 400));
+
+            const result = await salesforce.executeAction!('Account', {}, credentials);
+            expect(result).toEqual({ statusCode: 400, body: [{ message: 'Some msg', errorCode: 'INVALID_FIELD' }] });
         });
 
         it('should handle timeout error', async () => {
