@@ -4,7 +4,7 @@ import {
     type ObjectSchema,
     IgtLogger,
 } from '@soopa/piece-framework/discovery';
-import { SalesforceAuthError, sfFetch } from '../sf-fetch.js';
+import { NativeFetchAdapter, SalesforceFetchError } from '../../adapters/native-fetch.adapter.js';
 import { SF_API_VERSION } from '../common/index.js';
 import type { SalesforceAuth } from '../salesforce-types.js';
 
@@ -118,7 +118,7 @@ export class SalesforceDiscoveryAdapter implements IDiscoveryAdapter<SalesforceA
             const schema = await this.describe(auth, objectName, store);
             return schema.fields.some(f => f.name === fieldName);
         } catch (error) {
-            if (error instanceof SalesforceAuthError) throw error;
+            if (error instanceof SalesforceFetchError) throw error;
             if (error instanceof Error && error.message.includes('[FieldNotFoundError]')) {
                 log.debug('Object or field not found during drift check', { object: objectName, field: fieldName });
                 return false;
@@ -140,12 +140,13 @@ export class SalesforceDiscoveryAdapter implements IDiscoveryAdapter<SalesforceA
         const url = `${auth.instance_url}/services/data/${SF_API_VERSION}/sobjects/${encodedObject}/describe`;
 
         try {
-            const response = await sfFetch(url, {
-                headers: { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' },
+            const http = new NativeFetchAdapter();
+            const { data } = await http.get<Record<string, unknown>>(url, {
+                Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json'
             });
-            return await response.json();
+            return data;
         } catch (e: unknown) {
-            if (e instanceof SalesforceAuthError) {
+            if (e instanceof SalesforceFetchError && e.status === 401) {
                 throw e;
             }
             const errMsg = String((e as Record<string, unknown>).message || e);

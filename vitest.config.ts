@@ -7,7 +7,7 @@ export default defineConfig({
     projects: [
       {
         test: {
-          include: ['packages/**/*.test.ts', 'packages/**/*.spec.ts'],
+          include: ['**/*.test.ts', '**/*.spec.ts'],
           environment: 'node'
         }
       }
@@ -15,12 +15,12 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['packages/**/*.ts'],
+      include: ['src/**/*.ts'],
       exclude: [
-        'packages/**/*.spec.ts',
-        'packages/**/*.d.ts',
-        'packages/**/dist/**',
-        'packages/**/node_modules/**'
+        'src/**/*.spec.ts',
+        'src/**/*.d.ts',
+        'dist/**',
+        'node_modules/**'
       ],
       thresholds: {
         branches: 80,

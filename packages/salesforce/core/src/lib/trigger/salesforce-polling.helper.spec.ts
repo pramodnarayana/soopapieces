@@ -1,9 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runSalesforce, assertSafeSalesforceObject, assertSafeSalesforceField } from './salesforce-polling.helper.js';
-import { sfFetch } from '../sf-fetch.js';
+import { NativeFetchAdapter } from '../../adapters/native-fetch.adapter.js';
 import type { TriggerStore } from '@soopa/piece-framework';
-
-vi.mock('../sf-fetch.js');
 
 describe('salesforce-polling.helper', () => {
     describe('assertSafeSalesforceObject', () => {
@@ -43,14 +41,21 @@ describe('salesforce-polling.helper', () => {
                 put: vi.fn(),
                 delete: vi.fn(),
             };
-            vi.mocked(sfFetch).mockReset();
+        });
+
+        let mockGet: ReturnType<typeof vi.spyOn>;
+        beforeEach(() => {
+            mockGet = vi.spyOn(NativeFetchAdapter.prototype, 'get');
+        });
+
+        afterEach(() => {
+            vi.clearAllMocks();
         });
 
         it('should poll with fallback date if no cursor exists', async () => {
             vi.mocked(mockStore.get).mockResolvedValue(null);
             
-            const mockResponse = { json: async () => ({ records: [{ Id: '1', SystemModstamp: '2023-01-01T00:00:00Z' }] }) };
-            vi.mocked(sfFetch).mockResolvedValue(mockResponse as any);
+            mockGet.mockResolvedValue({ data: { records: [{ Id: '1', SystemModstamp: '2023-01-01T00:00:00Z' }] }, headers: {} });
 
             const records = await runSalesforce(
                 mockAuth,
@@ -60,9 +65,9 @@ describe('salesforce-polling.helper', () => {
             );
 
             expect(records.length).toBe(1);
-            expect(sfFetch).toHaveBeenCalledTimes(1);
+            expect(mockGet).toHaveBeenCalledTimes(1);
             
-            const callUrl = vi.mocked(sfFetch).mock.calls[0][0] as string;
+            const callUrl = mockGet.mock.calls[0][0] as string;
             const decodedUrl = decodeURIComponent(callUrl);
             expect(decodedUrl).toContain('SELECT Id, SystemModstamp FROM Account');
             expect(decodedUrl).toContain('WHERE SystemModstamp >');
@@ -75,8 +80,7 @@ describe('salesforce-polling.helper', () => {
         it('should poll with simple date cursor', async () => {
             vi.mocked(mockStore.get).mockResolvedValue('2023-01-01T00:00:00Z');
             
-            const mockResponse = { json: async () => ({ records: [] }) };
-            vi.mocked(sfFetch).mockResolvedValue(mockResponse as any);
+            mockGet.mockResolvedValue({ data: { records: [] }, headers: {} });
 
             await runSalesforce(
                 mockAuth,
@@ -85,7 +89,7 @@ describe('salesforce-polling.helper', () => {
                 mockStore
             );
 
-            const callUrl = vi.mocked(sfFetch).mock.calls[0][0] as string;
+            const callUrl = mockGet.mock.calls[0][0] as string;
             expect(decodeURIComponent(callUrl)).toContain("WHERE SystemModstamp > 2023-01-01T00:00:00Z");
             expect(mockStore.put).not.toHaveBeenCalled(); // No records, so no put
         });
@@ -93,8 +97,7 @@ describe('salesforce-polling.helper', () => {
         it('should poll with compound cursor tie-breaker', async () => {
             vi.mocked(mockStore.get).mockResolvedValue(JSON.stringify({ sinceDate: '2023-01-01T00:00:00Z', sinceId: '123' }));
             
-            const mockResponse = { json: async () => ({ records: [{ Id: '124', SystemModstamp: '2023-01-01T00:00:00Z' }] }) };
-            vi.mocked(sfFetch).mockResolvedValue(mockResponse as any);
+            mockGet.mockResolvedValue({ data: { records: [{ Id: '124', SystemModstamp: '2023-01-01T00:00:00Z' }] }, headers: {} });
 
             await runSalesforce(
                 mockAuth,
@@ -103,7 +106,7 @@ describe('salesforce-polling.helper', () => {
                 mockStore
             );
 
-            const callUrl = vi.mocked(sfFetch).mock.calls[0][0] as string;
+            const callUrl = mockGet.mock.calls[0][0] as string;
             const decodedUrl = decodeURIComponent(callUrl);
             expect(decodedUrl).toContain("SELECT Id, SystemModstamp, Name FROM Account");
             expect(decodedUrl).toContain("WHERE (SystemModstamp > 2023-01-01T00:00:00Z) OR (SystemModstamp = 2023-01-01T00:00:00Z AND Id > '123')");
@@ -116,12 +119,11 @@ describe('salesforce-polling.helper', () => {
         it('should recover from bad JSON cursor', async () => {
             vi.mocked(mockStore.get).mockResolvedValue('{"bad":"json"}');
             
-            const mockResponse = { json: async () => ({ records: [] }) };
-            vi.mocked(sfFetch).mockResolvedValue(mockResponse as any);
+            mockGet.mockResolvedValue({ data: { records: [] }, headers: {} });
 
             await runSalesforce(mockAuth, 'Account', { cursorKey: 'k', dateField: 'SystemModstamp' }, mockStore);
 
-            const callUrl = decodeURIComponent(vi.mocked(sfFetch).mock.calls[0][0] as string);
+            const callUrl = decodeURIComponent(mockGet.mock.calls[0][0] as string);
             // It should fall back to default date, meaning we shouldn't see '{"bad":"json"}' injected into query
             expect(callUrl).not.toContain('bad');
             expect(callUrl).not.toContain('json');

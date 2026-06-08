@@ -43,4 +43,12 @@ describe('provisionTmsTables', () => {
         
         expect(mockDb.transaction).not.toHaveBeenCalled();
     });
+
+    it('should throw an error for schema names exceeding 63 chars', async () => {
+        const longName = 'ws_' + 'a'.repeat(65);
+        await expect(provisionTmsTables(mockDb as unknown as AppsConnectorDb, longName))
+            .rejects.toThrow(/exceeds Postgres identifier limit/);
+        
+        expect(mockDb.transaction).not.toHaveBeenCalled();
+    });
 });

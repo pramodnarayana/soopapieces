@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SalesforceBulkAdapter } from './salesforce-bulk.adapter.js';
-import { sfFetch } from '../sf-fetch.js';
+import { NativeFetchAdapter } from '../../adapters/native-fetch.adapter.js';
 import type { SalesforceAuth } from '../salesforce-types.js';
 import type { TriggerStore } from '@soopa/piece-framework';
 
@@ -17,17 +17,17 @@ vi.mock('@soopa/piece-framework/discovery', async (importOriginal) => {
     };
 });
 
-vi.mock('../sf-fetch.js', () => ({
-    sfFetch: vi.fn(),
-    SF_API_VERSION: 'v59.0'
-}));
 
 describe('SalesforceBulkAdapter', () => {
     let adapter: SalesforceBulkAdapter;
     let mockAuth: SalesforceAuth;
     let mockStore: TriggerStore;
+    let mockGet: ReturnType<typeof vi.spyOn>;
+    let mockPost: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
+        mockGet = vi.spyOn(NativeFetchAdapter.prototype, 'get');
+        mockPost = vi.spyOn(NativeFetchAdapter.prototype, 'post');
         adapter = new SalesforceBulkAdapter();
         mockAuth = {
             access_token: 'test_token',
@@ -47,35 +47,32 @@ describe('SalesforceBulkAdapter', () => {
     describe('runBulkJob', () => {
         it('should execute a complete bulk job workflow (create, list, stream)', async () => {
             // Run 1: Create Job
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ id: 'job123' })
-            } as unknown as Response);
+            mockPost.mockResolvedValueOnce({
+                data: { id: 'job123' }, headers: {}
+            });
 
             const query = 'SELECT Id, Name FROM Account';
             let records = await adapter.runBulkJob(mockAuth, query, mockStore);
 
-            expect(sfFetch).toHaveBeenCalledTimes(1);
+            expect(mockPost).toHaveBeenCalledTimes(1);
             expect(records).toEqual([]);
             expect(mockStore.put).toHaveBeenCalledWith('igt_bulk_job_checkpoint', expect.objectContaining({ jobId: 'job123', state: 'IN_PROGRESS' }));
 
             // Run 2: Poll Status -> JobComplete & Download
             (mockStore.get as any).mockResolvedValue({ jobId: 'job123', state: 'IN_PROGRESS', soql: query });
 
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ state: 'JobComplete' })
-            } as unknown as Response);
+            mockGet.mockResolvedValueOnce({
+                data: { state: 'JobComplete' }, headers: {}
+            });
 
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                headers: { get: () => null },
-                text: async () => '"Id","Name"\n"1","Test"'
-            } as unknown as Response);
+            mockGet.mockResolvedValueOnce({
+                headers: {},
+                data: '"Id","Name"\n"1","Test"'
+            });
 
             records = await adapter.runBulkJob(mockAuth, query, mockStore);
 
-            expect(sfFetch).toHaveBeenCalledTimes(3); // +1 Get Status, +1 Download Results
+            expect(mockGet).toHaveBeenCalledTimes(2); // Get Status, Download Results
             expect(records).toEqual([{ Id: '1', Name: 'Test' }]);
             expect(mockStore.delete).toHaveBeenCalledWith('igt_bulk_job_checkpoint');
         });
@@ -84,58 +81,54 @@ describe('SalesforceBulkAdapter', () => {
             // Run 1: Store has an active job, poll status -> Failed
             (mockStore.get as any).mockResolvedValue({ jobId: 'job_failed_123', state: 'IN_PROGRESS', soql: 'SELECT Id FROM Lead' });
 
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ state: 'Failed', errorMessage: 'Something went wrong' })
-            } as unknown as Response);
+            mockGet.mockResolvedValueOnce({
+                data: { state: 'Failed', errorMessage: 'Something went wrong' }, headers: {}
+            });
 
             await expect(adapter.runBulkJob(mockAuth, 'SELECT Id FROM Lead', mockStore))
                 .rejects.toThrow('Bulk job failed: Something went wrong');
 
             expect(mockStore.delete).toHaveBeenCalledWith('igt_bulk_job_checkpoint');
-            expect(sfFetch).toHaveBeenCalledTimes(1);
+            expect(mockGet).toHaveBeenCalledTimes(1);
 
             // Run 2: Store is now empty, it creates a new job
             (mockStore.get as any).mockResolvedValue(undefined);
 
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ id: 'new_job_123' })
-            } as unknown as Response);
+            mockPost.mockResolvedValueOnce({
+                data: { id: 'new_job_123' }, headers: {}
+            });
 
             const records = await adapter.runBulkJob(mockAuth, 'SELECT Id FROM Lead', mockStore);
 
             expect(mockStore.put).toHaveBeenCalledWith('igt_bulk_job_checkpoint', expect.objectContaining({ jobId: 'new_job_123', state: 'IN_PROGRESS' }));
             expect(records).toEqual([]);
-            expect(sfFetch).toHaveBeenCalledTimes(2);
+            expect(mockPost).toHaveBeenCalledTimes(1);
         });
 
         it('should correctly handle transient network errors while polling bulk job status', async () => {
             (mockStore.get as any).mockResolvedValue({ jobId: 'job123', state: 'IN_PROGRESS', soql: 'SELECT Id FROM Lead' });
 
-            vi.mocked(sfFetch).mockRejectedValueOnce(new Error('Network error')); // transient
+            mockGet.mockRejectedValueOnce(new Error('Network error')); // transient
 
             await expect(adapter.runBulkJob(mockAuth, 'SELECT Id FROM Lead', mockStore))
                 .rejects.toThrow('Network error');
 
             expect(mockStore.delete).not.toHaveBeenCalled();
-            expect(sfFetch).toHaveBeenCalledTimes(1);
+            expect(mockGet).toHaveBeenCalledTimes(1);
         });
 
         it('should correctly parse CSV text containing quoted fields with embedded commas and newlines', async () => {
             (mockStore.get as any).mockResolvedValue({ jobId: 'job123', state: 'IN_PROGRESS', soql: 'SELECT Name, Notes FROM Lead' });
 
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                json: async () => ({ state: 'JobComplete' })
-            } as unknown as Response);
+            mockGet.mockResolvedValueOnce({
+                data: { state: 'JobComplete' }, headers: {}
+            });
 
             const mockCsvData = `"Name","Notes"\n"Smith, John","Line1\nLine2"\n"Doe, Jane","Single Line"`;
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                headers: { get: () => null },
-                text: async () => mockCsvData
-            } as unknown as Response);
+            mockGet.mockResolvedValueOnce({
+                headers: {},
+                data: mockCsvData
+            });
 
             const records = await adapter.runBulkJob(mockAuth, 'SELECT Name, Notes FROM Lead', mockStore);
 
@@ -147,12 +140,12 @@ describe('SalesforceBulkAdapter', () => {
         });
 
         it('should throw an error if job creation fails', async () => {
-            vi.mocked(sfFetch).mockRejectedValueOnce(
-                new Error('Salesforce API error (500): [{"message":"Internal Server Error"}]')
+            mockPost.mockRejectedValueOnce(
+                new Error('Salesforce API error 500: [{"message":"Internal Server Error"}]')
             );
 
             await expect(adapter.runBulkJob(mockAuth, 'SELECT Id FROM Account', mockStore))
-                .rejects.toThrow('Salesforce bulk query job creation failed: Error: Salesforce API error (500): [{"message":"Internal Server Error"}]');
+                .rejects.toThrow('Salesforce bulk query job creation failed: Error: Salesforce API error 500: [{"message":"Internal Server Error"}]');
         });
     });
 });

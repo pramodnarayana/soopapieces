@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SalesforceDiscoveryAdapter } from './salesforce-discovery.adapter.js';
-import { sfFetch } from '../sf-fetch.js';
+import { NativeFetchAdapter } from '../../adapters/native-fetch.adapter.js';
 import { SF_API_VERSION } from '../common/index.js';
 import type { SalesforceAuth } from '../salesforce-types.js';
 import type { TriggerStore } from '@soopa/piece-framework';
@@ -18,21 +18,12 @@ vi.mock('@soopa/piece-framework/discovery', async (importOriginal) => {
     };
 });
 
-vi.mock('../sf-fetch.js', () => ({
-    sfFetch: vi.fn(),
-    SF_API_VERSION: 'v59.0',
-    SalesforceAuthError: class extends Error {
-        constructor(message?: string) {
-            super(message);
-            this.name = 'SalesforceAuthError';
-        }
-    }
-}));
 
 describe('SalesforceDiscoveryAdapter', () => {
     let adapter: SalesforceDiscoveryAdapter;
     let mockAuth: SalesforceAuth;
     let mockStore: TriggerStore;
+    let mockGet: ReturnType<typeof vi.spyOn>;
 
     const mockSchemaResponse = {
         objectName: 'Contact',
@@ -55,6 +46,7 @@ describe('SalesforceDiscoveryAdapter', () => {
             get: vi.fn().mockResolvedValue(undefined),
             delete: vi.fn().mockResolvedValue(undefined),
         };
+        mockGet = vi.spyOn(NativeFetchAdapter.prototype, 'get');
     });
 
     afterEach(() => {
@@ -69,7 +61,7 @@ describe('SalesforceDiscoveryAdapter', () => {
             const schema = await adapter.describe(mockAuth, 'Contact', mockStore);
 
             expect(mockStore.get).toHaveBeenCalledWith('igt_schema_https://test.salesforce.com:Contact');
-            expect(sfFetch).not.toHaveBeenCalled();
+            expect(mockGet).not.toHaveBeenCalled();
             expect(schema).toEqual(mockSchemaResponse);
         });
 
@@ -78,16 +70,15 @@ describe('SalesforceDiscoveryAdapter', () => {
             (mockStore.get as any).mockResolvedValue(null);
 
             // API hit
-            vi.mocked(sfFetch).mockResolvedValueOnce({
-                ok: true,
-                json: async () => mockSchemaResponse
-            } as unknown as Response);
+            mockGet.mockResolvedValueOnce({
+                data: mockSchemaResponse, headers: {}
+            });
 
             const schema = await adapter.describe(mockAuth, 'Contact', mockStore);
 
-            expect(sfFetch).toHaveBeenCalledWith(
+            expect(mockGet).toHaveBeenCalledWith(
                 `https://test.salesforce.com/services/data/${SF_API_VERSION}/sobjects/Contact/describe`,
-                { headers: { Authorization: `Bearer test_token`, Accept: 'application/json' } }
+                { Authorization: `Bearer test_token`, Accept: 'application/json' }
             );
 
             expect(schema.objectName).toBe('Contact');
@@ -117,7 +108,7 @@ describe('SalesforceDiscoveryAdapter', () => {
         it('should throw an error if the Salesforce API call fails', async () => {
             (mockStore.get as any).mockResolvedValue(null);
 
-            vi.mocked(sfFetch).mockRejectedValueOnce(
+            mockGet.mockRejectedValueOnce(
                 new Error('Salesforce API error (404): [{"errorCode":"NOT_FOUND","message":"Not Found"}]')
             );
 
@@ -132,10 +123,9 @@ describe('SalesforceDiscoveryAdapter', () => {
 
         it('should evict the oldest cache entry when exceeding MAX_CACHE_SIZE', async () => {
             (mockStore.get as any).mockResolvedValue(null);
-            vi.mocked(sfFetch).mockResolvedValue({
-                ok: true,
-                json: async () => mockSchemaResponse
-            } as unknown as Response);
+            mockGet.mockResolvedValue({
+                data: mockSchemaResponse, headers: {}
+            });
 
             // MAX_CACHE_SIZE is 100, we need to exceed it
             for (let i = 0; i < 101; i++) {
@@ -143,11 +133,11 @@ describe('SalesforceDiscoveryAdapter', () => {
             }
             
             // Check that the first entry (Object0) is evicted
-            // We can infer this by calling it again and seeing sfFetch is called
-            vi.mocked(sfFetch).mockClear();
+            // We can infer this by calling it again and seeing get is called
+            mockGet.mockClear();
             (mockStore.get as any).mockResolvedValue(null);
             await adapter.describe(mockAuth, `Object0`, mockStore);
-            expect(sfFetch).toHaveBeenCalled();
+            expect(mockGet).toHaveBeenCalled();
         });
     });
 
@@ -171,7 +161,7 @@ describe('SalesforceDiscoveryAdapter', () => {
 
         it('should return false when a FieldNotFoundError is thrown', async () => {
             (mockStore.get as any).mockResolvedValue(null);
-            vi.mocked(sfFetch).mockRejectedValueOnce(
+            mockGet.mockRejectedValueOnce(
                 new Error('Salesforce API error (404): [{"errorCode":"NOT_FOUND","message":"Not Found"}]')
             );
             const exists = await adapter.fieldExists(mockAuth, 'InvalidObject', 'MissingField', mockStore);
@@ -180,7 +170,7 @@ describe('SalesforceDiscoveryAdapter', () => {
 
         it('should throw when a normal error is thrown', async () => {
             (mockStore.get as any).mockResolvedValue(null);
-            vi.mocked(sfFetch).mockRejectedValueOnce(
+            mockGet.mockRejectedValueOnce(
                 new Error('Network error')
             );
             await expect(adapter.fieldExists(mockAuth, 'Contact', 'MissingField', mockStore))

@@ -125,4 +125,49 @@ describe('upsertRevenovaObject', () => {
         const payload = { raw: xml, contentType: 'text/xml' };
         expect(upsertRevenovaObject(payload)).toBeNull();
     });
+
+    it('should return null if XML has no sObject', () => {
+        const xml = `<Notification><Other xsi:type="sf:Account"></Other></Notification>`;
+        const payload = { raw: xml, contentType: 'text/xml' };
+        expect(upsertRevenovaObject(payload)).toBeNull();
+    });
+
+    it('should return null if notification is not an object', () => {
+        expect(upsertRevenovaObject({ notification: 'string' })).toBeNull();
+    });
+
+    it('should handle direct raw payload without envelope', () => {
+        const payload = {
+            id: 'raw_123',
+            name: 'Direct'
+        };
+        const result = upsertRevenovaObject(payload);
+        expect(result).toEqual({
+            entityType: 'DEFAULT',
+            entityId: 'raw_123',
+            data: {
+                name: 'Direct'
+            }
+        });
+    });
+
+    it('should handle complex xml entities', () => {
+        const xml = `
+            <Notification>
+                <sObject xsi:type="sf:Account">
+                    <sf:Id>id_123</sf:Id>
+                    <sf:ValidHex>&#x20;</sf:ValidHex>
+                    <sf:ValidDec>&#32;</sf:ValidDec>
+                    <sf:InvalidHex>&#xFFFFFF;</sf:InvalidHex>
+                    <sf:InvalidDec>&#9999999;</sf:InvalidDec>
+                </sObject>
+            </Notification>
+        `;
+        const payload = { raw: xml, contentType: 'text/xml' };
+        const result = upsertRevenovaObject(payload);
+        expect(result?.data['validhex']).toBe(' ');
+        expect(result?.data['validdec']).toBe(' ');
+        expect(result?.data['invalidhex']).toBe('\uFFFD');
+        expect(result?.data['invaliddec']).toBe('\uFFFD');
+    });
 });

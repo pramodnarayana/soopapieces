@@ -7,7 +7,8 @@ import {
     optimizationService,
     IgtLogger,
 } from '@soopa/piece-framework/discovery';
-import { sfFetch, checkSalesforceLimits, SalesforceAuthError } from '../sf-fetch.js';
+import { SalesforceFetchError, NativeFetchAdapter } from '../../adapters/native-fetch.adapter.js';
+import { checkSalesforceLimits } from '../../adapters/salesforce-limits.js';
 import { salesforcesCommon, SF_API_VERSION } from '../common/index.js';
 import { assertSafeSalesforceObject } from './salesforce-polling.helper.js';
 
@@ -62,8 +63,8 @@ export const salesforceUniversalTrigger = createTrigger({
 
         try {
             return await runUniversalTrigger(context, objectName, store, log);
-        } catch (e) {
-            if (e instanceof SalesforceAuthError && e.code !== 'MISSING_CREDENTIALS') {
+        } catch (e: unknown) {
+            if (e instanceof SalesforceFetchError && e.message !== 'MISSING_CREDENTIALS') {
                 throw new Error(
                     `Your Salesforce connection has expired or been revoked. ` +
                     `Please reconnect your account in the connection settings. ` +
@@ -118,7 +119,7 @@ async function runUniversalTrigger(
     const instance_url = authData.instance_url ?? context.auth?.instance_url;
 
     if (!access_token || !instance_url) {
-        throw new SalesforceAuthError('Missing access_token or instance_url in authentication data', 'MISSING_CREDENTIALS');
+        throw new SalesforceFetchError('Missing access_token or instance_url in authentication data', 401);
     }
 
     const flatAuth = {
@@ -134,17 +135,17 @@ async function runUniversalTrigger(
 
     const executeStandardQuery = async (auth: typeof flatAuth, query: string): Promise<unknown[]> => {
         /* v8 ignore start */
-        const headers = { Authorization: `Bearer ${auth.access_token}` };
+        const headers = { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' };
         const all: unknown[] = [];
         let url: string | undefined = `${auth.instance_url}/services/data/${SF_API_VERSION}/query?q=${encodeURIComponent(query)}`;
+        const http = new NativeFetchAdapter();
 
         while (url) {
-            const response = await sfFetch(url, { headers });
-            const page = await response.json() as SfQueryPage;
-            all.push(...(page.records ?? []));
-            url = page.done || !page.nextRecordsUrl
+            const data: SfQueryPage = (await http.get<SfQueryPage>(url as string, headers)).data;
+            all.push(...(data.records ?? []));
+            url = data.done || !data.nextRecordsUrl
                 ? undefined
-                : `${auth.instance_url}${page.nextRecordsUrl}`;
+                : `${auth.instance_url}${data.nextRecordsUrl}`;
         }
 
         return all;
@@ -154,9 +155,9 @@ async function runUniversalTrigger(
     const executeCountQuery = async (auth: typeof flatAuth, query: string): Promise<number> => {
         /* v8 ignore start */
         const url = `${auth.instance_url}/services/data/${SF_API_VERSION}/query?q=${encodeURIComponent(query)}`;
-        const response = await sfFetch(url, { headers: { Authorization: `Bearer ${auth.access_token}` } });
-        const result = await response.json() as SfQueryPage & { records?: Array<{ expr0?: number }> };
-        return result.totalSize ?? result.records?.[0]?.expr0 ?? 0;
+        const http = new NativeFetchAdapter();
+        const { data } = await http.get<SfQueryPage & { records?: Array<{ expr0?: number }> }>(url, { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' });
+        return data.totalSize ?? data.records?.[0]?.expr0 ?? 0;
         /* v8 ignore stop */
     };
 

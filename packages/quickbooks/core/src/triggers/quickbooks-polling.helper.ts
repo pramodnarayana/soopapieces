@@ -2,6 +2,9 @@ import type { TriggerStore } from '@soopa/piece-framework';
 import { quickbooksCommon, resolveEnvironment, type QuickbooksEntityResponse } from '../lib/common.js';
 import { type ObjectHint } from '@soopa/piece-framework/discovery';
 import { QuickBooksQueryAdapter } from './quickbooks-query.adapter.js';
+import { NativeFetchAdapter, QuickBooksFetchError } from '../adapters/native-fetch.adapter.js';
+
+const httpAdapter = new NativeFetchAdapter();
 
 export interface QuickBooksAuth {
     access_token: string;
@@ -89,36 +92,26 @@ async function executeQuickBooksFetch(auth: QuickBooksAuth, sql: string): Promis
     const url = `${quickbooksCommon.getApiUrl(auth.props.companyId, env === 'test')}/query`
         + `?query=${encodeURIComponent(sql)}&minorversion=65`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
-
-    let response: Response;
+    let responseData: QuickbooksEntityResponse<unknown>;
     try {
-        response = await fetch(url, {
-            headers: {
-                Authorization: `Bearer ${auth.access_token}`,
-                Accept: 'application/json',
-            },
-            signal: controller.signal,
-        });
-    } catch (e) {
-        if (e instanceof Error && e.name === 'AbortError') {
+        const response = await httpAdapter.get<QuickbooksEntityResponse<unknown>>(url, {
+            Authorization: `Bearer ${auth.access_token}`,
+            Accept: 'application/json',
+        }, AbortSignal.timeout(15000));
+        responseData = response.data;
+    } catch (e: unknown) {
+        if (e instanceof Error && (e.name === 'AbortError' || e.name === 'TimeoutError')) {
             throw new Error(`QuickBooks query timed out after 15 seconds`);
         }
+        if (e instanceof QuickBooksFetchError) {
+            throw new Error(`QuickBooks query failed with status ${e.status} (response body omitted)`);
+        }
         throw e;
-    } finally {
-        clearTimeout(timeoutId);
     }
 
-    if (!response.ok) {
-        throw new Error(`QuickBooks query failed with status ${response.status} (response body omitted)`);
-    }
-
-    const body = await response.json() as QuickbooksEntityResponse<unknown>;
-
-    if (body.Fault) {
+    if (responseData.Fault) {
         throw new Error(`QuickBooks query returned a fault response (fault details omitted)`);
     }
 
-    return body;
+    return responseData;
 }
