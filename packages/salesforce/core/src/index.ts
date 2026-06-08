@@ -187,7 +187,7 @@ export const salesforce = createPiece({
                 let parsedBody: unknown = {};
                 try {
                     // Try to find JSON payload in the error message
-                    const braceIndex = err.message.search(/[{\[]/);
+                    const braceIndex = err.message.search(/[{[]/);
                     if (braceIndex !== -1) {
                         parsedBody = JSON.parse(err.message.substring(braceIndex));
                     }
