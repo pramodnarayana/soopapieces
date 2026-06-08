@@ -103,6 +103,9 @@ export class SalesforceUseCases {
   }
 
   async countRecords(credentials: SalesforceCredentials, objectName: string): Promise<number> {
+    if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(objectName)) {
+      throw new Error(`Invalid Salesforce object name: ${objectName}`);
+    }
     const q = encodeURIComponent(`SELECT COUNT() FROM ${objectName}`);
     const url = `${credentials.instanceUrl}/services/data/${SF_API_VERSION}/query?q=${q}`;
     
@@ -159,9 +162,9 @@ export class SalesforceUseCases {
     });
 
     // Honor Salesforce's done flag and also check record count
-    const _done = Boolean(data.done) || data.records.length < 200;
+    const isComplete = Boolean(data.done) || data.records.length < 200;
     let nextCursor: Record<string, unknown> | undefined;
-    if (!_done && data.records.length > 0) {
+    if (!isComplete && data.records.length > 0) {
       const lastRecord = data.records[data.records.length - 1];
       nextCursor = { lastId: lastRecord['Id'] };
     }

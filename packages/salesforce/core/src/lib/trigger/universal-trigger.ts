@@ -46,6 +46,7 @@ const LEGACY_TRIGGERS: Record<string, LegacyTrigger> = {
 const discoveryAdapter = new SalesforceDiscoveryAdapter();
 const queryAdapter = new SalesforceQueryAdapter();
 const bulkAdapter = new SalesforceBulkAdapter();
+const nativeFetch = new NativeFetchAdapter();
 
 export const salesforceUniversalTrigger = createTrigger({
     name: 'universal_trigger',
@@ -138,10 +139,9 @@ async function runUniversalTrigger(
         const headers = { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' };
         const all: unknown[] = [];
         let url: string | undefined = `${auth.instance_url}/services/data/${SF_API_VERSION}/query?q=${encodeURIComponent(query)}`;
-        const http = new NativeFetchAdapter();
 
         while (url) {
-            const data: SfQueryPage = (await http.get<SfQueryPage>(url as string, headers)).data;
+            const data: SfQueryPage = (await nativeFetch.get<SfQueryPage>(url as string, headers)).data;
             all.push(...(data.records ?? []));
             url = data.done || !data.nextRecordsUrl
                 ? undefined
@@ -155,8 +155,7 @@ async function runUniversalTrigger(
     const executeCountQuery = async (auth: typeof flatAuth, query: string): Promise<number> => {
         /* v8 ignore start */
         const url = `${auth.instance_url}/services/data/${SF_API_VERSION}/query?q=${encodeURIComponent(query)}`;
-        const http = new NativeFetchAdapter();
-        const { data } = await http.get<SfQueryPage & { records?: Array<{ expr0?: number }> }>(url, { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' });
+        const { data } = await nativeFetch.get<SfQueryPage & { records?: Array<{ expr0?: number }> }>(url, { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' });
         return data.totalSize ?? data.records?.[0]?.expr0 ?? 0;
         /* v8 ignore stop */
     };
