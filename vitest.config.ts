@@ -15,12 +15,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['packages/**/*.ts'],
+      include: ['packages/**/src/**/*.ts'],
       exclude: [
-        'packages/**/*.spec.ts',
-        'packages/**/*.d.ts',
-        'packages/**/dist/**',
-        'packages/**/node_modules/**'
+        'packages/**/src/**/*.spec.ts',
+        'packages/**/src/**/*.test.ts',
+        'packages/**/src/**/*.d.ts',
+        'dist/**',
+        'node_modules/**'
       ],
       thresholds: {
         branches: 80,

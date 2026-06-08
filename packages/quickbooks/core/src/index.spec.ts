@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { quickbooks } from './index.js';
+import { NativeFetchAdapter, QuickBooksFetchError } from './adapters/native-fetch.adapter.js';
 
 describe('quickbooks piece', () => {
-    let mockFetch: ReturnType<typeof vi.fn>;
+    let getSpy: ReturnType<typeof vi.spyOn>;
+    let postSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-        mockFetch = vi.fn();
-        global.fetch = mockFetch as any;
+        vi.clearAllMocks();
+        getSpy = vi.spyOn(NativeFetchAdapter.prototype, 'get');
+        postSpy = vi.spyOn(NativeFetchAdapter.prototype, 'post');
     });
 
     describe('executeAction', () => {
@@ -20,10 +23,10 @@ describe('quickbooks piece', () => {
             const successResponse = {
                 Customer: { Id: 'cus_1', DisplayName: 'John' }
             };
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
+            postSpy.mockResolvedValueOnce({
                 status: 200,
-                json: async () => successResponse
+                data: successResponse,
+                headers: {}
             });
 
             const result = await quickbooks.executeAction!('Customer', { DisplayName: 'John', _internalTag: 'ignore' }, credentials);
@@ -33,8 +36,8 @@ describe('quickbooks piece', () => {
             expect(result.entityId).toBe('cus_1');
             
             // Check that it stripped internal fields
-            const call = mockFetch.mock.calls[0];
-            const fetchBody = JSON.parse(call[1].body);
+            const call = postSpy.mock.calls[0];
+            const fetchBody = call[2];
             expect(fetchBody).toEqual({ DisplayName: 'John' }); // _internalTag stripped
         });
 
@@ -54,32 +57,29 @@ describe('quickbooks piece', () => {
             };
 
             // 1st POST - Stale Error
-            mockFetch.mockResolvedValueOnce({
-                ok: false,
-                status: 400,
-                json: async () => staleErrorBody
-            });
+            postSpy.mockRejectedValueOnce(new QuickBooksFetchError(`QuickBooks API error 400: ${JSON.stringify(staleErrorBody)}`, 400));
 
             // GET latest - returns new SyncToken
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
+            getSpy.mockResolvedValueOnce({
                 status: 200,
-                json: async () => freshEntityBody
+                data: freshEntityBody,
+                headers: {}
             });
 
             // 2nd POST - Success
-            mockFetch.mockResolvedValueOnce({
-                ok: true,
+            postSpy.mockResolvedValueOnce({
                 status: 200,
-                json: async () => successResponse
+                data: successResponse,
+                headers: {}
             });
 
             const result = await quickbooks.executeAction!('Customer', { Id: 'cus_1', DisplayName: 'Jane', SyncToken: '1' }, credentials);
 
-            expect(mockFetch).toHaveBeenCalledTimes(3);
+            expect(postSpy).toHaveBeenCalledTimes(2);
+            expect(getSpy).toHaveBeenCalledTimes(1);
             
-            const retryPostCall = mockFetch.mock.calls[2];
-            const retryBody = JSON.parse(retryPostCall[1].body);
+            const retryPostCall = postSpy.mock.calls[1];
+            const retryBody = retryPostCall[2];
             expect(retryBody).toEqual({ Id: 'cus_1', DisplayName: 'Jane', SyncToken: '2' }); // Used fresh token
 
             expect(result.statusCode).toBe(200);
@@ -87,10 +87,42 @@ describe('quickbooks piece', () => {
         });
 
         it('should handle timeout correctly', async () => {
-            mockFetch.mockRejectedValueOnce(new DOMException('Timeout', 'TimeoutError'));
+            const timeoutError = new Error('Timeout');
+            timeoutError.name = 'TimeoutError';
+            postSpy.mockRejectedValueOnce(timeoutError);
 
             await expect(quickbooks.executeAction!('Customer', { DisplayName: 'John' }, credentials))
                 .rejects.toThrow('QuickBooks API request timed out after 15s executing Customer');
+        });
+
+        it('should handle standard error', async () => {
+            postSpy.mockRejectedValueOnce(new Error('Standard Error'));
+
+            await expect(quickbooks.executeAction!('Customer', { DisplayName: 'John' }, credentials))
+                .rejects.toThrow('Standard Error');
+        });
+
+        it('should handle SyncToken stale error and return silently if get latest fails', async () => {
+            const staleErrorBody = {
+                Fault: {
+                    Error: [{ code: '5010', Message: 'Stale Object Error' }]
+                }
+            };
+
+            // 1st POST - Stale Error
+            postSpy.mockRejectedValueOnce(new QuickBooksFetchError(`QuickBooks API error 400: ${JSON.stringify(staleErrorBody)}`, 400));
+
+            // GET latest - fails
+            getSpy.mockRejectedValueOnce(new Error('Network failure'));
+
+            // It should re-throw the original error, wait, no, the executeAction just returns the first error status!
+            // Actually, wait, let's check what it does when fetchLatestEntityRecord fails.
+            // It returns null, so freshSyncToken is falsy. Then it does not retry.
+            // It just returns the original status and body.
+            const result = await quickbooks.executeAction!('Customer', { Id: 'cus_1', DisplayName: 'Jane', SyncToken: '1' }, credentials);
+
+            expect(result.statusCode).toBe(400);
+            expect(result.body).toEqual(staleErrorBody);
         });
     });
 
@@ -101,6 +133,11 @@ describe('quickbooks piece', () => {
             expect(objects.find(o => o.name === 'Customer')).toBeDefined();
         });
 
+        it('should return describeConfig', async () => {
+            const config = await quickbooks.describeConfig!({});
+            expect(config.length).toBeGreaterThan(0);
+            expect(config[0].name).toBe('useTaxCode');
+        });
     });
 
     describe('discovery methods', () => {

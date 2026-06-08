@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { salesforceUniversalTrigger } from './universal-trigger.js';
 import { UniversalTrigger } from '@soopa/piece-framework/discovery';
-import { SalesforceAuthError } from '../sf-fetch.js';
+import { SalesforceFetchError } from '../../adapters/native-fetch.adapter.js';
 
 vi.mock('@soopa/piece-framework/discovery', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@soopa/piece-framework/discovery')>();
@@ -47,8 +47,8 @@ describe('salesforceUniversalTrigger', () => {
         expect(executeArg.auth.access_token).toBe('test_token');
     });
 
-    it('should handle SalesforceAuthError appropriately', async () => {
-        const authError = new SalesforceAuthError('Expired token');
+    it('should handle SalesforceFetchError appropriately', async () => {
+        const authError = new SalesforceFetchError('Expired token', 401);
         (UniversalTrigger.execute as any).mockRejectedValueOnce(authError);
 
         await expect(salesforceUniversalTrigger.run!(mockContext as any))

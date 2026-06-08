@@ -4,7 +4,7 @@ import {
 } from '@soopa/piece-framework/discovery';
 /* v8 ignore start */
 import { IgtLogger } from '@soopa/piece-framework/discovery';
-import { sfFetch } from '../sf-fetch.js';
+import { NativeFetchAdapter, SalesforceFetchError } from '../../adapters/native-fetch.adapter.js';
 import { SF_API_VERSION } from '../common/index.js';
 import type { SalesforceAuth } from '../salesforce-types.js';
 
@@ -64,29 +64,26 @@ export class SalesforceBulkAdapter implements IBulkAdapter<SalesforceAuth> {
         storeKey: string
     ): Promise<unknown[]> {
         const url = `${auth.instance_url}/services/data/${SF_API_VERSION}/jobs/query`;
-        let response: Response;
+        let data: { id: string };
         try {
-            response = await sfFetch(url, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${auth.access_token}`,
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json'
-                },
-                body: JSON.stringify({ operation: 'query', query: soql }),
-            });
+            const http = new NativeFetchAdapter();
+            const res = await http.post<{ id: string }>(url, {
+                Authorization: `Bearer ${auth.access_token}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/json'
+            }, { operation: 'query', query: soql });
+            data = res.data;
         } catch (e: unknown) {
             // Check for 404 or 410 which indicate the job was deleted/expired
-            if (e instanceof Error && (e.message.includes('(404)') || e.message.includes('(410)'))) {
+            if (e instanceof SalesforceFetchError && (e.status === 404 || e.status === 410)) {
                 await store.delete(storeKey);
                 throw new Error('Salesforce bulk query job expired or not found. State reset.');
             }
-            throw new Error(`Salesforce bulk query job creation failed: ${e}`);
+            throw new Error(`Salesforce bulk query job creation failed: ${String(e)}`);
         }
 
-        const jobData = await response.json();
         const checkpoint: BulkJobCheckpoint = {
-            jobId: jobData.id,
+            jobId: data.id,
             state: 'IN_PROGRESS',
             soql,
             startedAt: new Date().toISOString()
@@ -103,21 +100,21 @@ export class SalesforceBulkAdapter implements IBulkAdapter<SalesforceAuth> {
         checkpoint: BulkJobCheckpoint
     ): Promise<unknown[]> {
         const url = `${auth.instance_url}/services/data/${SF_API_VERSION}/jobs/query/${checkpoint.jobId}`;
-        let response: Response;
+        let jobInfo: Record<string, unknown>;
         try {
-            response = await sfFetch(url, {
-                headers: { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' },
+            const http = new NativeFetchAdapter();
+            const { data } = await http.get<Record<string, unknown>>(url, {
+                Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json'
             });
+            jobInfo = data;
         } catch (e: unknown) {
-            if (e instanceof Error && (e.message.includes('(404)') || e.message.includes('(410)'))) {
+            if (e instanceof SalesforceFetchError && (e.status === 404 || e.status === 410)) {
                 await store.delete(storeKey);
             }
             // Transient network error, do NOT delete checkpoint, except for 404/410 explicitly terminal above
             log.debug('Failed to fetch bulk job status', { error: String(e) });
             throw e;
         }
-
-        const jobInfo = await response.json();
 
         if (jobInfo.state === 'JobComplete') {
             checkpoint.state = 'AWAITING_RESULTS';
@@ -133,7 +130,7 @@ export class SalesforceBulkAdapter implements IBulkAdapter<SalesforceAuth> {
         if (jobInfo.state === 'Failed' || jobInfo.state === 'Aborted') {
             await store.delete(storeKey);
             log.error('Bulk job failed or aborted', { jobId: checkpoint.jobId, state: jobInfo.state, errorMessage: jobInfo.errorMessage });
-            throw new Error(`Bulk job ${jobInfo.state.toLowerCase()}: ${jobInfo.errorMessage}`);
+            throw new Error(`Bulk job ${jobInfo.state.toLowerCase()}: ${String(jobInfo.errorMessage)}`);
         }
 
         log.debug('Bulk job still in progress', { jobId: checkpoint.jobId, state: jobInfo.state });
@@ -154,24 +151,27 @@ export class SalesforceBulkAdapter implements IBulkAdapter<SalesforceAuth> {
                 url += `?locator=${locator}`;
             }
 
-            let response: Response;
+            let text: string;
+            let responseHeaders: Record<string, string>;
             try {
-                response = await sfFetch(url, {
-                    headers: { Authorization: `Bearer ${auth.access_token}`, Accept: 'text/csv' },
+                const http = new NativeFetchAdapter();
+                const res = await http.get<string>(url, {
+                    Authorization: `Bearer ${auth.access_token}`, Accept: 'text/csv'
                 });
+                text = res.data;
+                responseHeaders = res.headers;
             } catch (e: unknown) {
-                if (e instanceof Error && (e.message.includes('(404)') || e.message.includes('(410)'))) {
+                if (e instanceof SalesforceFetchError && (e.status === 404 || e.status === 410)) {
                     await store.delete(storeKey);
                     throw new Error(`Salesforce bulk query job results expired or not found for jobId ${jobId}. State reset.`);
                 }
-                throw new Error(`Failed to download bulk job results: ${e}`);
+                throw new Error(`Failed to download bulk job results: ${String(e)}`);
             }
 
-            const text = await response.text();
             const pageRecords = this.parseCSV(text);
             allRecords = allRecords.concat(pageRecords);
 
-            locator = response.headers.get('Sforce-Locator');
+            locator = responseHeaders['sforce-locator'] || responseHeaders['Sforce-Locator'] || null;
         } while (locator && locator !== 'null');
 
         return allRecords;

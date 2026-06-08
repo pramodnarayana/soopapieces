@@ -12,7 +12,10 @@ import {
 import { quickbooksAuth } from './lib/auth.js';
 import { quickbooksCommon, resolveEnvironment } from './lib/common.js';
 import { quickbooksUniversalTrigger } from './triggers/universal-trigger.js';
+import { NativeFetchAdapter, QuickBooksFetchError } from './adapters/native-fetch.adapter.js';
 import type { QuickBooksAuth } from './triggers/quickbooks-polling.helper.js';
+
+const httpAdapter = new NativeFetchAdapter();
 
 // ── QuickBooks metadata (no describe API — schemas are stable and well-documented) ─────
 
@@ -397,26 +400,38 @@ export const quickbooks = createPiece({
     }
 
     const executePost = async (payloadData: unknown) => {
-      let res: Response;
+      let resData: Record<string, unknown>;
+      let status: number;
       try {
-        res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(payloadData),
-          signal: AbortSignal.timeout(15_000),
-        });
+        const response = await httpAdapter.post<Record<string, unknown>>(url, {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        }, payloadData, AbortSignal.timeout(15_000));
+        status = response.status;
+        resData = response.data;
       } catch (err: unknown) {
         if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
           throw new Error(`QuickBooks API request timed out after 15s executing ${objectType}`);
         }
-        throw err;
+        if (err instanceof QuickBooksFetchError) {
+          status = err.status;
+          try {
+            // Try to find JSON payload in the error message
+            const braceIndex = err.message.indexOf('{');
+            if (braceIndex !== -1) {
+              resData = JSON.parse(err.message.substring(braceIndex));
+            } else {
+              resData = {};
+            }
+          } catch {
+            resData = {};
+          }
+        } else {
+          throw err;
+        }
       }
-      const body = await res.json().catch(() => ({})) as Record<string, unknown>;
-      return { res, body };
+      return { status, body: resData };
     };
 
     // ── Rule: SyncToken stale auto-refresh ────────────────────────────────────
@@ -438,13 +453,9 @@ export const quickbooks = createPiece({
     const fetchLatestEntityRecord = async (entityId: string): Promise<Record<string, unknown> | null> => {
       try {
         const getUrl = `${url}/${encodeURIComponent(entityId)}`;
-        const res = await fetch(getUrl, {
-          method: 'GET',
-          headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` },
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (!res.ok) return null;
-        const data = await res.json() as Record<string, unknown>;
+        const { data } = await httpAdapter.get<Record<string, unknown>>(getUrl, {
+          Accept: 'application/json', Authorization: `Bearer ${accessToken}`
+        }, AbortSignal.timeout(10_000));
         const matchKey = Object.keys(data).find(k => k.toLowerCase() === objectType.toLowerCase()) ?? objectType;
         return (data[matchKey] as Record<string, unknown> | undefined) ?? null;
       } catch {
@@ -459,19 +470,19 @@ export const quickbooks = createPiece({
     // customer support team always sees the exact request QB accepted.
     let sentPayload: Record<string, unknown> = cleanPayload;
 
-    let { res, body } = await executePost(cleanPayload);
+    let { status, body } = await executePost(cleanPayload);
 
     // If the first call fails with a SyncToken error and the payload contains an Id
     // (i.e. this is an update, not a create), refresh the token and retry once.
     const payloadId = typeof cleanPayload['Id'] === 'string' ? cleanPayload['Id'] : null;
 
-    if (isSyncTokenError(res.status, body) && payloadId) {
+    if (isSyncTokenError(status, body) && payloadId) {
       const latestEntity = await fetchLatestEntityRecord(payloadId);
       const freshSyncToken = latestEntity?.['SyncToken'] as string | undefined;
       if (freshSyncToken) {
         const retryPayload = { ...cleanPayload, Id: payloadId, SyncToken: freshSyncToken };
         const retried = await executePost(retryPayload);
-        res = retried.res;
+        status = retried.status;
         body = retried.body;
         // Update sentPayload to reflect the retried payload that succeeded.
         sentPayload = retryPayload;
@@ -485,7 +496,7 @@ export const quickbooks = createPiece({
     const entityId = (typeof entityObj?.['Id'] === 'string' ? entityObj['Id'] : undefined)
       ?? (typeof body['Id'] === 'string' ? body['Id'] : undefined);
 
-    return { statusCode: res.status, body, entityId, sentPayload };
+    return { statusCode: status, body, entityId, sentPayload };
   },
   // NOTE: QuickBooks webhook support is intentionally disabled.
   // QB sends all company events to a single app endpoint identified by

@@ -1,5 +1,5 @@
 import type { TriggerStore } from '@soopa/piece-framework';
-import { sfFetch } from '../sf-fetch.js';
+import { NativeFetchAdapter } from '../../adapters/native-fetch.adapter.js';
 import { SF_API_VERSION } from '../common/index.js';
 
 const SF_OBJECT_NAME_RE = /^\w{1,80}$/;
@@ -102,9 +102,9 @@ export async function runSalesforce(
     );
     const url = `${auth.instance_url}/services/data/${SF_API_VERSION}/query?q=${soql}`;
 
-    const response = await sfFetch(url, { headers: { Authorization: `Bearer ${auth.access_token}` } });
-    const body = (await response.json()) as SalesforceQueryResponse;
-    const records: SalesforceRecord[] = body.records ?? [];
+    const http = new NativeFetchAdapter();
+    const { data } = await http.get<SalesforceQueryResponse>(url, { Authorization: `Bearer ${auth.access_token}`, Accept: 'application/json' });
+    const records: SalesforceRecord[] = data.records ?? [];
 
     if (records.length > 0) {
         await updateCursor(store, cursorKey, records, dateField);

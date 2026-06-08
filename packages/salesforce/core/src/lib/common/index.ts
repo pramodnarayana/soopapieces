@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
 	AuthenticationType,
 	HttpMethod,
@@ -7,6 +6,15 @@ import {
 } from '@soopa/piece-framework';
 import type { HttpResponse } from '@soopa/piece-framework';
 import { salesforceAuth } from '../auth.js';
+
+export interface SalesforceAuthValue {
+	access_token: string;
+	data: {
+		instance_url: string;
+		[key: string]: unknown;
+	};
+	[key: string]: unknown;
+}
 
 /** Salesforce REST API version — must match the version in openapi.json. */
 export const SF_API_VERSION = 'v59.0';
@@ -63,21 +71,37 @@ export const salesforcesCommon = {
 					options: [],
 				};
 			}
-			const options = await getSalesforceObjects(auth);
-			return {
-				disabled: false,
-				options: options.body['sobjects']
-					.map((object: any) => {
-						return {
-							label: object.label,
-							value: object.name,
-						};
-					})
-					.sort((a: { label: string }, b: { label: string }) =>
-						a.label.localeCompare(b.label)
-					)
-					.filter((object: { label: string }) => !object.label.startsWith('_')),
-			};
+			try {
+				const options = await getSalesforceObjects(auth);
+				const optionsBody = options.body as Record<string, unknown>;
+				if (!optionsBody || typeof optionsBody !== 'object') {
+					throw new Error('Invalid response body');
+				}
+				const optionsArray = optionsBody['sobjects'] as Record<string, unknown>[];
+				if (!Array.isArray(optionsArray)) {
+					throw new Error('sobjects is not an array');
+				}
+				return {
+					disabled: false,
+					options: optionsArray
+						.map((object) => {
+							return {
+								label: String(object['label']),
+								value: String(object['name']),
+							};
+						})
+						.sort((a: { label: string }, b: { label: string }) =>
+							a.label.localeCompare(b.label)
+						)
+						.filter((object: { label: string }) => !object.label.startsWith('_')),
+				};
+			} catch {
+				return {
+					disabled: true,
+					placeholder: 'unable to load objects',
+					options: [],
+				};
+			}
 		},
 	}),
 	record: Property.Dropdown<string, true, typeof salesforceAuth>({
@@ -108,7 +132,9 @@ export const salesforcesCommon = {
 					auth,
 					object as string
 				);
-				const fields = new Set(describeResponse.body['fields'].map((f: any) => f.name));
+				const describeBody = describeResponse.body as Record<string, unknown>;
+				const fieldsArray = describeBody['fields'] as Record<string, unknown>[];
+				const fields = new Set(fieldsArray.map((f) => String(f['name'])));
 
 				let displayField = 'Id';
 				if (fields.has('Name')) {
@@ -120,7 +146,7 @@ export const salesforcesCommon = {
 				}
 
 				const response = await querySalesforceApi<{
-					records: { Id: string;[key: string]: any }[];
+					records: { Id: string;[key: string]: unknown }[];
 				}>(
 					HttpMethod.GET,
 					auth,
@@ -215,19 +241,35 @@ export const salesforcesCommon = {
 					options: [],
 				};
 			}
-			const options = await getSalesforceFields(
-				auth,
-				object as string
-			);
-			return {
-				disabled: false,
-				options: options.body['fields'].map((field: any) => {
-					return {
-						label: field.label,
-						value: field.name,
-					};
-				}),
-			};
+			try {
+				const options = await getSalesforceFields(
+					auth,
+					object as string
+				);
+				const optionsBody = options.body as Record<string, unknown>;
+				if (!optionsBody || typeof optionsBody !== 'object') {
+					throw new Error('Invalid response body');
+				}
+				const fieldsArray = optionsBody['fields'] as Record<string, unknown>[];
+				if (!Array.isArray(fieldsArray)) {
+					throw new Error('fields is not an array');
+				}
+				return {
+					disabled: false,
+					options: fieldsArray.map((field) => {
+						return {
+							label: String(field['label']),
+							value: String(field['name']),
+						};
+					}),
+				};
+			} catch {
+				return {
+					disabled: true,
+					placeholder: 'could not load fields',
+					options: [],
+				};
+			}
 		},
 	}),
 	campaign: Property.Dropdown<string, true, typeof salesforceAuth>({
@@ -374,11 +416,13 @@ export const salesforcesCommon = {
 					auth,
 					'Lead'
 				);
-				const leadSourceField = describeResponse.body['fields'].find(
-					(field: any) => field.name === 'LeadSource'
+				const describeBody = describeResponse.body as Record<string, unknown>;
+				const fieldsArray = describeBody['fields'] as Record<string, unknown>[];
+				const leadSourceField = fieldsArray.find(
+					(field) => field['name'] === 'LeadSource'
 				);
 
-				if (!leadSourceField?.picklistValues) {
+				if (!leadSourceField?.['picklistValues']) {
 					return {
 						disabled: true,
 						placeholder: 'Lead Source field not found or not a picklist',
@@ -386,12 +430,13 @@ export const salesforcesCommon = {
 					};
 				}
 
+				const picklistValues = leadSourceField['picklistValues'] as Record<string, unknown>[];
 				return {
 					disabled: false,
-					options: leadSourceField.picklistValues.map((value: any) => {
+					options: picklistValues.map((value) => {
 						return {
-							label: value.label,
-							value: value.value,
+							label: String(value['label']),
+							value: String(value['value']),
 						};
 					}),
 				};
@@ -563,7 +608,8 @@ export const salesforcesCommon = {
 					auth,
 					parent_object as string
 				);
-				const relationships = describeResponse.body['childRelationships'];
+				const describeBody = describeResponse.body as Record<string, unknown>;
+				const relationships = describeBody['childRelationships'] as Record<string, unknown>[];
 				if (!relationships) {
 					return {
 						disabled: true,
@@ -573,10 +619,12 @@ export const salesforcesCommon = {
 				}
 				return {
 					disabled: false,
-					options: relationships.map((rel: any) => ({
-						label: `${rel.relationshipName} (${rel.childSObject})`,
-						value: rel.relationshipName,
-					})),
+					options: relationships
+						.filter((rel) => rel['relationshipName'] && String(rel['relationshipName']).trim() !== '' && rel['childSObject'])
+						.map((rel) => ({
+							label: `${rel['relationshipName']} (${rel['childSObject']})`,
+							value: String(rel['relationshipName']),
+						})),
 				};
 			} catch (e) {
 				console.error(e);
@@ -685,21 +733,24 @@ function createSalesforcePicklistDropdown(config: {
 					auth,
 					config.objectName
 				);
-				const field = describeResponse.body['fields'].find(
-					(field: any) => field.name === config.fieldName
+				const describeBody = describeResponse.body as Record<string, unknown>;
+				const fieldsArray = describeBody['fields'] as Record<string, unknown>[];
+				const field = fieldsArray.find(
+					(f) => f['name'] === config.fieldName
 				);
-				if (!field?.picklistValues) {
+				if (!field?.['picklistValues']) {
 					return {
 						disabled: true,
 						placeholder: `${config.fieldName} field not found or not a picklist`,
 						options: [],
 					};
 				}
+				const picklistValues = field['picklistValues'] as Record<string, unknown>[];
 				return {
 					disabled: false,
-					options: field.picklistValues.map((value: any) => ({
-						label: value.label,
-						value: value.value,
+					options: picklistValues.map((value) => ({
+						label: String(value['label']),
+						value: String(value['value']),
 					})),
 				};
 			} catch (e) {
@@ -717,9 +768,9 @@ function createSalesforcePicklistDropdown(config: {
 
 export async function callSalesforceApi<T>(
 	method: HttpMethod,
-	authentication: any,
+	authentication: SalesforceAuthValue,
 	url: string,
-	body: Record<string, any> | undefined
+	body: Record<string, unknown> | undefined
 ): Promise<HttpResponse<T>> {
 	return await httpClient.sendRequest<T>({
 		method: method,
@@ -734,7 +785,7 @@ export async function callSalesforceApi<T>(
 
 export async function querySalesforceApi<T>(
 	method: HttpMethod,
-	authentication: any,
+	authentication: SalesforceAuthValue,
 	query: string
 ): Promise<HttpResponse<T>> {
 	return await httpClient.sendRequest<T>({
@@ -750,10 +801,10 @@ export async function querySalesforceApi<T>(
 	});
 }
 
-export async function createBulkJob<T = any>(
+export async function createBulkJob<T = unknown>(
 	method: HttpMethod,
-	authentication: any,
-	jobDetails: any
+	authentication: SalesforceAuthValue,
+	jobDetails: Record<string, unknown>
 ): Promise<HttpResponse<T>> {
 	return await httpClient.sendRequest<T>({
 		method: method,
@@ -768,7 +819,7 @@ export async function createBulkJob<T = any>(
 
 export async function uploadToBulkJob<T>(
 	method: HttpMethod,
-	authentication: any,
+	authentication: SalesforceAuthValue,
 	jobId: string,
 	csv: string
 ): Promise<HttpResponse<T>> {
@@ -778,7 +829,7 @@ export async function uploadToBulkJob<T>(
 		headers: {
 			'Content-Type': 'text/csv',
 		},
-		body: csv as any as any,
+		body: csv as unknown,
 		authentication: {
 			type: AuthenticationType.BEARER_TOKEN,
 			token: authentication['access_token'],
@@ -788,8 +839,8 @@ export async function uploadToBulkJob<T>(
 
 export async function notifyBulkJobComplete<T>(
 	method: HttpMethod,
-	authentication: any,
-	message: any,
+	authentication: SalesforceAuthValue,
+	message: Record<string, unknown>,
 	jobId: string
 ): Promise<HttpResponse<T>> {
 	return await httpClient.sendRequest<T>({
@@ -805,7 +856,7 @@ export async function notifyBulkJobComplete<T>(
 
 export async function getBulkJobInfo<T>(
 	method: HttpMethod,
-	authentication: any,
+	authentication: SalesforceAuthValue,
 	jobId: string
 ): Promise<HttpResponse<T>> {
 	return await httpClient.sendRequest<T>({
@@ -820,9 +871,9 @@ export async function getBulkJobInfo<T>(
 
 /* v8 ignore start */
 async function getSalesforceObjects(
-	authentication: any
-): Promise<HttpResponse<any>> {
-	return await httpClient.sendRequest<any>({
+	authentication: SalesforceAuthValue
+): Promise<HttpResponse<Record<string, unknown>>> {
+	return await httpClient.sendRequest<Record<string, unknown>>({
 		method: HttpMethod.GET,
 		url: `${authentication.data['instance_url']}/services/data/${SF_API_VERSION}/sobjects`,
 		authentication: {
@@ -835,10 +886,10 @@ async function getSalesforceObjects(
 // Write function to list all fields name inside salesforce object
 /* v8 ignore start */
 async function getSalesforceFields(
-	authentication: any,
+	authentication: SalesforceAuthValue,
 	object: string
-): Promise<HttpResponse<any>> {
-	return await httpClient.sendRequest<any>({
+): Promise<HttpResponse<Record<string, unknown>>> {
+	return await httpClient.sendRequest<Record<string, unknown>>({
 		method: HttpMethod.GET,
 		url: `${authentication.data['instance_url']}/services/data/${SF_API_VERSION}/sobjects/${object}/describe`,
 		authentication: {
